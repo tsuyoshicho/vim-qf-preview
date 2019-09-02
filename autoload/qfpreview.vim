@@ -12,6 +12,20 @@ scriptencoding utf-8
 let s:save_cpo = &cpoptions
 set cpoptions&vim
 
+" Default options
+let s:defaults = #{
+        \ height: 15,
+        \ title: v:true,
+        \ scrollbar: v:true,
+        \ mapping: v:false
+        \ }
+
+function! s:get(key) abort
+    return get(b:, 'qfpreview', s:defaults)->has_key(a:key)
+            \ ? get(b:, 'qfpreview', s:defaults)[a:key]
+            \ : s:defaults[a:key]
+endfunction
+
 function! s:popup_filter(winid, key) abort
     if a:key ==# "\<c-k>"
         let firstline = popup_getoptions(a:winid).firstline
@@ -45,43 +59,68 @@ function! qfpreview#open(idx) abort
     let wininfo = getwininfo(win_getid())[0]
     let qflist = wininfo.loclist ? getloclist(0) : getqflist()
     let qfitem = qflist[a:idx]
-    let title = printf('%s (%d/%d)', bufname(qfitem.bufnr), a:idx+1, len(qflist))
-
-    " Truncate long titles
-    if len(title) > wininfo.width
-        let width = wininfo.width - 4
-        let title = '…' . title[-width:]
-    endif
 
     let freespace = &lines - &cmdheight - wininfo.height - 3
-    let height = freespace > 15 ? 15 : freespace
+    let height = freespace > s:get('height') ? s:get('height') : freespace
 
     hi def link QfPreview Pmenu
-    hi def link QfPreviewTitle Pmenu
-    hi def link QfPreviewScrollbar PmenuSbar
-    hi def link QfPreviewThumb PmenuThumb
 
     silent let winid = popup_create(qfitem.bufnr, #{
+            \ hidden: 1,
             \ line: wininfo.winrow - 1,
             \ col: wininfo.wincol,
             \ pos: 'botleft',
             \ minheight: height,
             \ maxheight: height,
-            \ minwidth: wininfo.width - 3,
-            \ maxwidth: wininfo.width - 3,
+            \ minwidth: wininfo.width - 2,
+            \ maxwidth: wininfo.width - 2,
+            \ padding: [1],
             \ firstline: qfitem.lnum,
-            \ title: title,
-            \ close: 'button',
-            \ padding: [0,1,1,1],
-            \ border: [1,0,0,0],
-            \ borderchars: [' '],
             \ moved: 'any',
+            \ mapping: s:get('mapping'),
             \ filter: function('s:popup_filter'),
             \ highlight: 'QfPreview',
-            \ borderhighlight: ['QfPreviewTitle'],
-            \ scrollbarhighlight: 'QfPreviewScrollbar',
-            \ thumbhighlight: 'QfPreviewThumb'
+            \ scrollbar: 0
             \ })
+
+    if s:get('scrollbar')
+        hi def link QfPreviewScrollbar PmenuSbar
+        hi def link QfPreviewThumb PmenuThumb
+
+        call popup_setoptions(winid, #{
+                \ scrollbar: 1,
+                \ scrollbarhighlight: 'QfPreviewScrollbar',
+                \ thumbhighlight: 'QfPreviewThumb'
+                \ })
+
+        " Make sure popup window always has same width as quickfix window
+        if popup_getpos(winid).scrollbar
+            call popup_setoptions(winid, #{
+                    \ minwidth: wininfo.width - 3,
+                    \ maxwidth: wininfo.width - 3
+                    \ })
+        endif
+    endif
+
+    if s:get('title')
+        hi def link QfPreviewTitle Pmenu
+        let title = printf('%s (%d/%d)', bufname(qfitem.bufnr), a:idx+1, len(qflist))
+
+        " Truncate long titles
+        if len(title) > wininfo.width
+            let width = wininfo.width - 4
+            let title = '…' . title[-width:]
+        endif
+
+        call popup_setoptions(winid, #{
+                \ title: title,
+                \ close: 'button',
+                \ padding: [0,1,1,1],
+                \ border: [1,0,0,0],
+                \ borderchars: [' '],
+                \ borderhighlight: ['QfPreviewTitle'],
+                \ })
+    endif
 
     if !has('patch-8.1.1919')
         call setwinvar(winid, '&number', 0)
@@ -94,6 +133,8 @@ function! qfpreview#open(idx) abort
         call setwinvar(winid, '&list', 0)
         call setwinvar(winid, '&scrolloff', 0)
     endif
+
+    call popup_show(winid)
 endfunction
 
 let &cpoptions = s:save_cpo

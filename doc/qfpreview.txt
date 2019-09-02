@@ -39,10 +39,10 @@ CTRL-J      Scroll the popup window down 2 lines.
 CTRL-K      Scroll the popup window up 2 lines.
 
                                                                 *qfpreview_gg*
-gg          Jump to first line of displayed buffer.
+gg          Jump to the first line of the displayed buffer.
 
                                                                  *qfpreview_G*
-G           Jump to bottom of displayed buffer.
+G           Jump to the bottom of the displayed buffer.
 
 ==============================================================================
 MOUSE EVENTS                                                 *qfpreview-mouse*
@@ -54,7 +54,51 @@ right corner to close the window.
 ==============================================================================
 CONFIGURATION                                        *qfpreview-configuration*
 
-                                                         *qfpreview-highlight*
+Appearance ~
+
+b:qfpreview                                                      *b:qfpreview*
+
+    Type: |Dictionary|
+
+    A |buffer-variable| for the |quickfix| and |location-list| windows.
+    The following keys are supported:
+                                                            *qfpreview-height*
+                                                          *b:qfpreview.height*
+height          Number of text lines to display in the popup window.
+
+                Default: 15
+
+                                                             *qfpreview-title*
+                                                           *b:qfpreview.title*
+title           If true, the |bufname| of the displayed buffer is shown at the
+                top of the popup window. Set to false to display an empty
+                padding. If false, no "X" will appear in the right corner for
+                closing the window with the mouse.
+                See also |hl-QfPreviewTitle| below.
+
+                Default: |v:true|
+
+                                                         *qfpreview-scrollbar*
+                                                       *b:qfpreview.scrollbar*
+scrollbar       If true and the buffer doesn't fit into the popup window, a
+                |popup-scrollbar| will be displayed on the right side of the
+                window. Set to false to never display a scrollbar.
+                See also |hl-QfPreviewScrollbar| and |hl-QfPreviewThumb| below.
+
+                Default: |v:true|
+
+Examples ~
+>
+    " in after/ftplugin/qf.vim
+    let b:qfpreview = #{height: 10, scrollbar: v:false}
+
+    " Alternatively, in vimrc
+    augroup qfpreview
+        autocmd!
+        autocmd FileType qf let b:qfpreview = #{height: 20, title: 0}
+    augroup END
+<
+
 Highlight Groups ~
 
 The following highlighting groups are used by the plugin:
